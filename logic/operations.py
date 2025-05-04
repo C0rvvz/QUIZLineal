@@ -46,7 +46,7 @@ def verificar_transpuesta(matriz, entries):
     :return: (bool, str) Una tupla con un booleano indicando si es correcta y un mensaje.
     """
     try:
-        # Construye la matriz transpuesta ingresada por el usuario
+      
         matriz_transpuesta = []
         for i in range(len(entries)):
             row = []
@@ -56,7 +56,7 @@ def verificar_transpuesta(matriz, entries):
             matriz_transpuesta.append(row)
         matriz_transpuesta = np.array(matriz_transpuesta, dtype=object)
 
-        # Verifica si la matriz ingresada es la transpuesta correcta
+       
         if np.array_equal(matriz_transpuesta, matriz.T):
             return True, "¡Has completado el nivel correctamente!"
         else:
@@ -72,10 +72,10 @@ def calcular_determinante(matriz):
     """
     n = matriz.shape[0]
     if n == 1:
-        # Determinante para una matriz 1x1: el único elemento
+       
         return matriz[0, 0]
     elif n == 2:
-        # Determinante para una matriz 2x2: ad - bc
+       
         return matriz[0, 0] * matriz[1, 1] - matriz[0, 1] * matriz[1, 0]
     else:
         raise ValueError("El cálculo del determinante solo está implementado para matrices de 1x1 y 2x2.")
@@ -94,7 +94,7 @@ def calcular_adjunta(matriz):
             determinante_submatriz = calcular_determinante(submatriz)
             signo = (-1) ** (i + j)
             cofactores[i, j] = signo * determinante_submatriz
-    return cofactores.T  # La adjunta es la traspuesta de la matriz de cofactores
+    return cofactores.T  
 
 def calcular_inversa(matriz):
     """
@@ -104,19 +104,19 @@ def calcular_inversa(matriz):
     """
     determinante = calcular_determinante(matriz)
     if determinante == 0:
-        return None  # La matriz no tiene inversa
+        return None  
 
-    # Construcción manual de la transpuesta
+   
     transpuesta = []
-    for i in range(matriz.shape[1]):  # Itera sobre columnas para construir la transpuesta
+    for i in range(matriz.shape[1]): 
         row = []
         for j in range(matriz.shape[0]):
             value = matriz[j, i]
-            row.append(Fraction(value))  # Convierte a fracción para mayor precisión
+            row.append(Fraction(value)) 
         transpuesta.append(row)
     transpuesta = np.array(transpuesta, dtype=object)
 
-    # Multiplicamos la transpuesta por 1/determinante
+   
     inversa = transpuesta / Fraction(determinante)
     return inversa
 
@@ -140,17 +140,17 @@ def verificar_inversa(matriz, matriz_ingresada):
     :return: (bool, str) Una tupla con un booleano indicando si es correcta y un mensaje.
     """
     try:
-        # Convierte las matrices a float para evitar problemas con fracciones
+    
         matriz_float = np.array(matriz, dtype=float)
         matriz_ingresada_float = np.array(matriz_ingresada, dtype=float)
 
-        # Calcula la matriz identidad
+
         identidad = np.eye(matriz.shape[0], dtype=float)
 
-        # Calcula el producto de la matriz original y la ingresada
+      
         producto = np.dot(matriz_float, matriz_ingresada_float)
 
-        # Compara el producto con la matriz identidad usando tolerancia numérica
+      
         if np.allclose(producto, identidad, atol=1e-9):
             return True, "¡La matriz ingresada es la inversa correcta!"
         else:
