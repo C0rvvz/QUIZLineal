@@ -8,9 +8,8 @@ from logic.matrix_utils import format_matrix, es_escalonada_reducida
 import numpy as np
 from fractions import Fraction
 
-class GaussGameApp:
+class Linealgame:
     def __init__(self, root):
-        """Initialize the GaussGameApp with the main Tkinter root."""
         self.root = root
         self.root.title("🎯 Desafío Matemático 🎯")
         self.matriz = None  
