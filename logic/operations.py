@@ -6,19 +6,33 @@ def generar_matriz(n):
     return np.random.randint(-10, 10, (n, n))
 
 def realizar_operacion(A, tipo, fila1, fila2=None, factor=1, B=None):
-    """Aplica una operación de fila sobre la matriz usando fracciones."""
+    """
+    Aplica una operación de fila sobre la matriz usando fracciones.
+    Esto es parte del método de Gauss-Jordan para reducir matrices.
+
+    :param A: Matriz principal (numpy array).
+    :param tipo: Tipo de operación ("intercambio", "multiplicacion", "suma").
+    :param fila1: Índice de la primera fila involucrada.
+    :param fila2: Índice de la segunda fila (solo para "intercambio" o "suma").
+    :param factor: Escalar usado en "multiplicacion" o "suma".
+    :param B: Matriz adicional para operaciones simultáneas.
+    :return: Las matrices A y B modificadas.
+    """
     A = A.astype(object)
     if B is not None:
         B = B.astype(object)
     if tipo == "intercambio":
+        # Intercambia las filas fila1 y fila2.
         A[[fila1, fila2]] = A[[fila2, fila1]]
         if B is not None:
             B[[fila1, fila2]] = B[[fila2, fila1]]
     elif tipo == "multiplicacion":
+        # Multiplica todos los elementos de fila1 por un factor.
         A[fila1] = [Fraction(x) * Fraction(factor) for x in A[fila1]]
         if B is not None:
             B[fila1] = [Fraction(x) * Fraction(factor) for x in B[fila1]]
     elif tipo == "suma":
+        # Suma fila2 escalada por un factor a fila1.
         A[fila1] = [Fraction(x) + Fraction(factor) * Fraction(y) for x, y in zip(A[fila1], A[fila2])]
         if B is not None:
             B[fila1] = [Fraction(x) + Fraction(factor) * Fraction(y) for x, y in zip(B[fila1], B[fila2])]
@@ -39,24 +53,25 @@ def es_transpuesta_correcta(matriz, matriz_transpuesta):
 
 def verificar_transpuesta(matriz, entries):
     """
-    Verifica si la matriz ingresada por el usuario es la transpuesta correcta de la matriz original.
+    Verifica si la matriz ingresada por el usuario es la transpuesta correcta.
+    La transpuesta se obtiene intercambiando filas por columnas.
 
     :param matriz: Matriz original (numpy array).
     :param entries: Lista de listas de widgets Entry con los valores ingresados por el usuario.
     :return: (bool, str) Una tupla con un booleano indicando si es correcta y un mensaje.
     """
     try:
-      
+        # Convertimos los valores ingresados por el usuario en una matriz.
         matriz_transpuesta = []
         for i in range(len(entries)):
             row = []
             for j in range(len(entries[i])):
-                value = entries[i][j].get()
-                row.append(Fraction(eval(value)))
+                value = entries[i][j].get()  # Obtenemos el valor del widget Entry.
+                row.append(Fraction(eval(value)))  # Convertimos a fracción.
             matriz_transpuesta.append(row)
         matriz_transpuesta = np.array(matriz_transpuesta, dtype=object)
 
-       
+        # Comparamos la matriz ingresada con la transpuesta real.
         if np.array_equal(matriz_transpuesta, matriz.T):
             return True, "¡Has completado el nivel correctamente!"
         else:
@@ -66,20 +81,14 @@ def verificar_transpuesta(matriz, entries):
 
 def calcular_determinante(matriz):
     """
-    Calcula el determinante de una matriz cuadrada de 1x1 o 2x2.
+    Calcula el determinante de una matriz cuadrada 2x2.
     :param matriz: Matriz cuadrada (numpy array).
     :return: Determinante de la matriz.
     """
     n = matriz.shape[0]
-    if n == 1:
-       
-        return matriz[0, 0]
-    elif n == 2:
-       
+    if n == 2:
         return matriz[0, 0] * matriz[1, 1] - matriz[0, 1] * matriz[1, 0]
-    else:
-        raise ValueError("El cálculo del determinante solo está implementado para matrices de 1x1 y 2x2.")
-
+    
 def calcular_adjunta(matriz):
     """
     Calcula la matriz adjunta de una matriz cuadrada.
@@ -94,29 +103,31 @@ def calcular_adjunta(matriz):
             determinante_submatriz = calcular_determinante(submatriz)
             signo = (-1) ** (i + j)
             cofactores[i, j] = signo * determinante_submatriz
-    return cofactores.T  
+    return cofactores.T
 
 def calcular_inversa(matriz):
     """
     Calcula la inversa de una matriz cuadrada de 2x2.
+    La inversa se calcula como la transpuesta de la matriz de cofactores dividida por el determinante.
+
     :param matriz: Matriz cuadrada (numpy array).
     :return: Matriz inversa (numpy array) o None si no tiene inversa.
     """
-    determinante = calcular_determinante(matriz)
+    determinante = calcular_determinante(matriz)  # Calcula el determinante.
     if determinante == 0:
-        return None  
+        return None  # Si el determinante es 0, la matriz no tiene inversa.
 
-   
+    # Calculamos la transpuesta manualmente.
     transpuesta = []
-    for i in range(matriz.shape[1]): 
+    for i in range(matriz.shape[1]):  # Iteramos por columnas.
         row = []
-        for j in range(matriz.shape[0]):
-            value = matriz[j, i]
-            row.append(Fraction(value)) 
+        for j in range(matriz.shape[0]):  # Iteramos por filas.
+            value = matriz[j, i]  # Intercambiamos filas y columnas.
+            row.append(Fraction(value))  # Usamos fracciones para precisión.
         transpuesta.append(row)
     transpuesta = np.array(transpuesta, dtype=object)
 
-   
+    # Dividimos cada elemento de la transpuesta por el determinante.
     inversa = transpuesta / Fraction(determinante)
     return inversa
 
@@ -140,17 +151,13 @@ def verificar_inversa(matriz, matriz_ingresada):
     :return: (bool, str) Una tupla con un booleano indicando si es correcta y un mensaje.
     """
     try:
-    
         matriz_float = np.array(matriz, dtype=float)
         matriz_ingresada_float = np.array(matriz_ingresada, dtype=float)
 
-
         identidad = np.eye(matriz.shape[0], dtype=float)
 
-      
         producto = np.dot(matriz_float, matriz_ingresada_float)
 
-      
         if np.allclose(producto, identidad, atol=1e-9):
             return True, "¡La matriz ingresada es la inversa correcta!"
         else:
