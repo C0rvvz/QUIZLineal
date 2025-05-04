@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # Add parent directory to sys.pathorts
 import tkinter as tk
 from tkinter import messagebox, simpledialog
-from logic.operations import generar_matriz, realizar_operacion
+from logic.operations import generar_matriz, realizar_operacion, es_transpuesta_correcta, verificar_transpuesta, calcular_inversa, verificar_inversa, calcular_resultado, calcular_determinante
 from logic.matrix_utils import format_matrix, es_escalonada_reducida
 import numpy as np
 from fractions import Fraction
@@ -13,9 +13,9 @@ class GaussGameApp:
         """Initialize the GaussGameApp with the main Tkinter root."""
         self.root = root
         self.root.title("🎯 Desafío Matemático 🎯")
-        self.matriz = None
+        self.matriz = None  # Inicializa la matriz actual
         self.n = 0
-        self.current_level = 0
+        self.current_level = 0  # Nivel actual completado
 
         self.start_frame = tk.Frame(root)
         self.start_frame.pack()
@@ -39,35 +39,70 @@ class GaussGameApp:
         self.n = self.ask_matrix_size()
         if self.n is None:
             return
-        self.matriz = generar_matriz(self.n)
-        self.identidad = np.eye(self.n, dtype=object)  # Initialize identity matrix
+        self.matriz = generar_matriz(self.n)  # Genera una nueva matriz cada vez
+        self.identidad = np.eye(self.n, dtype=object)  # Inicializa la matriz identidad
+
         self.start_frame.pack_forget()
         self.show_game_screen("Gauss Jordan")
 
+    def show_completed_level_1(self):
+        """Muestra la matriz completada del nivel 1."""
+        if self.matriz is None:
+            tk.messagebox.showerror("Error", "La matriz no está definida.")
+            return
+
+        # Limpia la ventana actual
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        # Muestra la matriz en un widget de texto
+        matriz_texto = format_matrix(self.matriz)
+        text_widget = tk.Text(self.root, wrap="none", height=10, width=50)
+        text_widget.insert("1.0", matriz_texto)
+        text_widget.config(state="disabled")
+        text_widget.pack()
+
+        # Agrega botones para continuar o salir
+        tk.Button(self.root, text="Continuar", command=self.next_level).pack()
+        tk.Button(self.root, text="Salir", command=self.quit_game).pack()
+
+    def next_level(self):
+        """Avanza al siguiente nivel."""
+        tk.messagebox.showinfo("Nivel 2", "Aquí comienza el nivel 2.")
+        self.start_transpose()
+
     def start_transpose(self):
+        """Start the Transpose level."""
         if self.current_level < 1:
             messagebox.showerror("Error", "Debes completar el Nivel 1 antes de avanzar al Nivel 2.")
             return
-        self.n = self.ask_matrix_size()
+        self.n = self.ask_matrix_size()  # Solicita el tamaño de la matriz
         if self.n is None:
             return
-        self.matriz = np.zeros((self.n, self.n), dtype=object)  
+        self.matriz = generar_matriz(self.n)  # Genera una nueva matriz para el nivel 2
         self.start_frame.pack_forget()
         self.show_game_screen("Transpuesta")
 
     def start_inverse(self):
+        """Start the Inverse level."""
         if self.current_level < 2:
             messagebox.showerror("Error", "Debes completar el Nivel 2 antes de avanzar al Nivel 3.")
             return
-        self.n = self.ask_matrix_size()
-        if self.n is None:
+        self.n = 2  # Limita el tamaño de la matriz a 2x2
+        self.matriz = generar_matriz(self.n)  # Genera una nueva matriz de tamaño 2x2
+        self.determinante = calcular_determinante(self.matriz)
+        if self.determinante == 0:
+            messagebox.showerror("Error", "La matriz generada no tiene inversa. Intenta nuevamente.")
+            self.quit_game()
             return
-        self.matriz = generar_matriz(self.n)
+        self.inversa_correcta = calcular_inversa(self.matriz)
         self.start_frame.pack_forget()
         self.show_game_screen("Inversa")
 
     def ask_matrix_size(self):
-        """Prompt the user to input the size of the matrix."""
+        """Prompt the user to input the size of the matrix (only for level 1)."""
+        if self.current_level > 0:
+            return self.n  # Return the previously selected size
         try:
             n = int(simpledialog.askstring("Tamaño de la matriz", "Ingresa el tamaño de la matriz cuadrada (2-5):"))
             if n < 2 or n > 5:
@@ -77,7 +112,7 @@ class GaussGameApp:
             messagebox.showerror("Error", "Por favor, ingresa un número válido entre 2 y 5.")
             return None
 
-    def show_game_screen(self, level):
+    def show_game_screen(self, level, disable_controls=False):
         """Display the game screen for the current level."""
         for widget in self.game_frame.winfo_children():
             widget.destroy()
@@ -85,34 +120,114 @@ class GaussGameApp:
         self.game_frame.pack()
         tk.Label(self.game_frame, text=f"Nivel: {level}", font=("Arial", 14)).pack(pady=10)
 
-        # Create a vertical separator as a column of "|"
-        separador = np.array([["|"] for _ in range(self.n)], dtype=object)
-        matriz_combinada = np.hstack((self.matriz, separador, self.identidad))  # Combine matrices with separator
-        matriz_texto = format_matrix(matriz_combinada)
-        self.matriz_label = tk.Label(self.game_frame, text=f"Matriz y Resultante:\n{matriz_texto}", font=("Courier", 12))
-        self.matriz_label.pack(pady=5)
+        if level == "Transpuesta":
+            # Muestra la matriz original
+            matriz_texto = format_matrix(self.matriz)
+            tk.Label(self.game_frame, text="Matriz Original:", font=("Arial", 12)).pack(pady=5)
+            text_widget = tk.Text(self.game_frame, wrap="none", height=10, width=50)
+            text_widget.insert("1.0", matriz_texto)
+            text_widget.config(state="disabled")
+            text_widget.pack(pady=5)
 
-        if level == "Gauss Jordan":
-            self.add_gauss_controls()
-        elif level == "Transpuesta":
-            self.add_transpose_controls()
+            # Crea los slots para ingresar la matriz transpuesta
+            self.entries = []  # Almacena los widgets de entrada
+            tk.Label(self.game_frame, text="Ingresa la matriz transpuesta:", font=("Arial", 12)).pack(pady=5)
+            for i in range(self.n):
+                row_entries = []
+                row_frame = tk.Frame(self.game_frame)
+                row_frame.pack()
+                for j in range(self.n):
+                    entry = tk.Entry(row_frame, width=5, justify="center")
+                    entry.grid(row=i, column=j, padx=5, pady=5)
+                    row_entries.append(entry)
+                self.entries.append(row_entries)
+
+            # Botón para mostrar el resultado
+            tk.Button(self.game_frame, text="Resultado", command=self.mostrar_resultado_transpuesta).pack(pady=5)
+
+            # Botón para terminar y validar la respuesta
+            tk.Button(self.game_frame, text="Terminar", command=self.verificar_transpuesta).pack(pady=5)
+
+            # Botón para salir
+            tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
+
         elif level == "Inversa":
-            self.add_inverse_controls()
+            # Muestra la matriz original
+            matriz_texto = format_matrix(self.matriz)
+            tk.Label(self.game_frame, text="Matriz Original:", font=("Arial", 12)).pack(pady=5)
+            text_widget = tk.Text(self.game_frame, wrap="none", height=10, width=50)
+            text_widget.insert("1.0", matriz_texto)
+            text_widget.config(state="disabled")
+            text_widget.pack(pady=5)
 
-    def add_gauss_controls(self):
-        tk.Button(self.game_frame, text="Intercambiar filas", command=self.intercambiar_filas).pack(pady=5)
-        tk.Button(self.game_frame, text="Multiplicar fila por un escalar", command=self.multiplicar_fila).pack(pady=5)
-        tk.Button(self.game_frame, text="Sumar múltiplo de una fila a otra", command=self.sumar_filas).pack(pady=5)
-        tk.Button(self.game_frame, text="Terminar", command=self.terminar_nivel).pack(pady=5)
+            # Crea los campos de entrada para la matriz inversa
+            self.entries = []  # Store entry widgets for user input
+            tk.Label(self.game_frame, text="Ingresa la matriz inversa:", font=("Arial", 12)).pack(pady=5)
+            for i in range(self.n):
+                row_entries = []
+                row_frame = tk.Frame(self.game_frame)
+                row_frame.pack()
+                for j in range(self.n):
+                    entry = tk.Entry(row_frame, width=5, justify="center")
+                    entry.grid(row=i, column=j, padx=5, pady=5)
+                    row_entries.append(entry)
+                self.entries.append(row_entries)
+
+            # Botón para mostrar el resultado
+            tk.Button(self.game_frame, text="Resultado", command=self.mostrar_resultado_inversa).pack(pady=5)
+
+            # Botón para terminar y validar la respuesta
+            tk.Button(self.game_frame, text="Terminar", command=self.verificar_inversa).pack(pady=5)
+
+            # Botón para salir
+            tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
+
+        elif level == "Gauss Jordan":
+            separador = np.array([["|"] for _ in range(self.n)], dtype=object)
+            matriz_combinada = np.hstack((self.matriz, separador, self.identidad))  # Combine matrices with separator
+            matriz_texto = format_matrix(matriz_combinada)
+            self.matriz_label = tk.Label(self.game_frame, text=f"Matriz y Resultante:\n{matriz_texto}", font=("Courier", 12))
+            self.matriz_label.pack(pady=5)
+            self.add_gauss_controls(disable_controls)
+
+    def mostrar_resultado_transpuesta(self):
+        """Muestra la matriz transpuesta correcta."""
+        try:
+            transpuesta = self.matriz.T
+            matriz_texto = format_matrix(transpuesta)
+            messagebox.showinfo("Resultado", f"Matriz transpuesta:\n{matriz_texto}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
+
+    def mostrar_resultado_inversa(self):
+        """Muestra la matriz inversa correcta y la almacena para validación."""
+        try:
+            self.inversa_correcta = calcular_inversa(self.matriz)  # Calcula la inversa usando la lógica corregida
+            if self.inversa_correcta is None:
+                messagebox.showerror("Error", "La matriz no tiene inversa.")
+                return
+            matriz_texto = format_matrix(self.inversa_correcta)
+            messagebox.showinfo("Resultado", f"Matriz inversa:\n{matriz_texto}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
+
+    def add_gauss_controls(self, disable_controls=False):
+        """Add controls for the Gauss Jordan level."""
+        if not disable_controls:
+            tk.Button(self.game_frame, text="Intercambiar filas", command=self.intercambiar_filas).pack(pady=5)
+            tk.Button(self.game_frame, text="Multiplicar fila por un escalar", command=self.multiplicar_fila).pack(pady=5)
+            tk.Button(self.game_frame, text="Sumar múltiplo de una fila a otra", command=self.sumar_filas).pack(pady=5)
+            tk.Button(self.game_frame, text="Terminar", command=self.terminar_nivel).pack(pady=5)
         tk.Button(self.game_frame, text="Salir", command=self.quit_game).pack(pady=5)
 
     def add_transpose_controls(self):
-        tk.Button(self.game_frame, text="Digitar matriz", command=self.digitar_matriz).pack(pady=5)
-        tk.Button(self.game_frame, text="Terminar", command=self.terminar_nivel).pack(pady=5)
-        tk.Button(self.game_frame, text="Salir", command=self.quit_game).pack(pady=5)
+        """Add controls for the Transpose level."""
+        tk.Button(self.game_frame, text="Digitar matriz", command=self.digitar_matriz_transpuesta).pack(pady=5)
+        tk.Button(self.game_frame, text="Terminar", command=self.verificar_transpuesta).pack(pady=5)
+        tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
 
     def add_inverse_controls(self):
-        tk.Button(self.game_frame, text="Terminar", command=self.terminar_nivel).pack(pady=5)
+        tk.Button(self.game_frame, text="Terminar", command=self.verificar_inversa).pack(pady=5)
         tk.Button(self.game_frame, text="Salir", command=self.quit_game).pack(pady=5)
 
     def intercambiar_filas(self):
@@ -199,25 +314,180 @@ class GaussGameApp:
         self.matriz_label.config(text=f"Matriz y Resultante\n{matriz_texto}")
 
     def terminar_nivel(self):
-        """Valida si la matriz actual es correcta y regresa al menú principal si no lo es."""
+        """Valida si la matriz actual es correcta y regresa al menú principal."""
         try:
             if es_escalonada_reducida(self.matriz):
                 messagebox.showinfo("¡Correcto!", "¡Has completado el nivel correctamente!")
-                self.current_level = 1  # Update the current level
-                self.level2_button.config(state="normal")  # Enable the next level button
+                self.current_level += 1  # Incrementa el nivel completado
+                if self.current_level >= 1:
+                    self.level2_button.config(state="normal")  # Habilita el botón del nivel 2
+                if self.current_level >= 2:
+                    self.level3_button.config(state="normal")  # Habilita el botón del nivel 3
+                self.quit_game()
             else:
                 messagebox.showerror("Incorrecto", "La matriz no está en forma escalonada reducida.")
         except Exception as e:
             messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
 
     def quit_game(self):
-        """Return to the main menu and clear the current matrix."""
-        self.matriz = None
-        if hasattr(self, 'matriz_label'):
-            self.matriz_label.config(text="")
-
+        """Regresa al menú principal sin perder el progreso."""
+        self.matriz = None  # Limpia la matriz actual
         for widget in self.game_frame.winfo_children():
             widget.destroy()
 
         self.game_frame.pack_forget()
         self.start_frame.pack()
+
+    def digitar_matriz(self):
+        """Allow the user to manually input the matrix."""
+        try:
+            matriz_texto = simpledialog.askstring(
+                "Digitar matriz",
+                f"Ingresa la matriz fila por fila, separando los elementos con espacios.\n"
+                f"Ejemplo para una matriz {self.n}x{self.n}:\n1 2 3\n4 5 6\n7 8 9"
+            )
+            if not matriz_texto:
+                raise ValueError("No se ingresó ninguna matriz.")
+            
+            filas = matriz_texto.strip().split("\n")
+            if len(filas) != self.n:
+                raise ValueError(f"Debes ingresar exactamente {self.n} filas.")
+            
+            matriz = []
+            for fila in filas:
+                elementos = fila.split()
+                if len(elementos) != self.n:
+                    raise ValueError(f"Cada fila debe tener exactamente {self.n} elementos.")
+                matriz.append([Fraction(eval(x)) for x in elementos])  # Convert to Fraction for precision
+            
+            self.matriz = np.array(matriz, dtype=object)
+            self.actualizar_matriz()
+            messagebox.showinfo("Matriz actualizada", "La matriz fue ingresada correctamente.")
+        except ValueError as ve:
+            messagebox.showerror("Error", f"Entrada inválida: {ve}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
+
+    def digitar_matriz_transpuesta(self):
+        """Allow the user to manually input the transposed matrix using entry widgets."""
+        for widget in self.game_frame.winfo_children():
+            widget.destroy()
+
+        tk.Label(self.game_frame, text="Ingresa la matriz transpuesta:", font=("Arial", 14)).pack(pady=10)
+
+        # Muestra la matriz original generada
+        matriz_texto = format_matrix(self.matriz)
+        tk.Label(self.game_frame, text="Matriz Original:", font=("Arial", 12)).pack(pady=5)
+        text_widget = tk.Text(self.game_frame, wrap="none", height=10, width=50)
+        text_widget.insert("1.0", matriz_texto)
+        text_widget.config(state="disabled")
+        text_widget.pack(pady=5)
+
+        # Crea los campos de entrada para la matriz transpuesta
+        self.entries = []  # Store entry widgets for user input
+        for i in range(self.n):
+            row_entries = []
+            row_frame = tk.Frame(self.game_frame)
+            row_frame.pack()
+            for j in range(self.n):
+                entry = tk.Entry(row_frame, width=5, justify="center")
+                entry.grid(row=i, column=j, padx=5, pady=5)
+                row_entries.append(entry)
+            self.entries.append(row_entries)
+
+        # Botones para guardar, terminar y salir
+        tk.Button(self.game_frame, text="Guardar", command=self.guardar_matriz_transpuesta).pack(pady=5)
+        tk.Button(self.game_frame, text="Terminar", command=self.verificar_transpuesta).pack(pady=5)
+        tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
+
+    def guardar_matriz_transpuesta(self):
+        """Save the manually entered transposed matrix."""
+        try:
+            matriz_transpuesta = []
+            for i in range(self.n):
+                row = []
+                for j in range(self.n):
+                    value = self.entries[i][j].get()
+                    row.append(Fraction(eval(value))) 
+                matriz_transpuesta.append(row)
+            self.matriz_transpuesta = np.array(matriz_transpuesta, dtype=object)
+            messagebox.showinfo("Matriz guardada", "La matriz transpuesta fue ingresada correctamente.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Entrada inválida: {e}")
+
+    def verificar_transpuesta(self):
+        """Verifica si la matriz ingresada coincide con la transpuesta."""
+        try:
+            matriz_ingresada = self.obtener_matriz_ingresada()
+            if np.array_equal(matriz_ingresada, self.matriz.T):
+                messagebox.showinfo("¡Correcto!", "¡La matriz ingresada es la transpuesta correcta!")
+                self.current_level = 2
+                self.level3_button.config(state="normal")
+                self.quit_game()
+            else:
+                messagebox.showerror("Incorrecto", "La matriz ingresada no es la transpuesta correcta.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
+
+    def verificar_inversa(self):
+        """Verifica si la matriz ingresada coincide con la inversa calculada."""
+        try:
+            # Construye la matriz ingresada por el usuario
+            matriz_ingresada = []
+            for i in range(self.n):
+                row = []
+                for j in range(self.n):
+                    value = self.entries[i][j].get()
+                    row.append(Fraction(eval(value)))  # Convierte a fracción para mayor precisión
+                matriz_ingresada.append(row)
+            matriz_ingresada = np.array(matriz_ingresada, dtype=object)
+
+            # Calcula la matriz inversa si no se ha calculado aún
+            if not hasattr(self, 'inversa_correcta'):
+                self.inversa_correcta = calcular_inversa(self.matriz)
+
+            # Convierte ambas matrices a float para la comparación
+            inversa_correcta_float = self.inversa_correcta.astype(float)
+            matriz_ingresada_float = matriz_ingresada.astype(float)
+
+            # Compara las matrices usando np.allclose con tolerancia numérica
+            if np.allclose(matriz_ingresada_float, inversa_correcta_float, atol=1e-9):
+                messagebox.showinfo("¡Correcto!", "¡La matriz ingresada es la inversa correcta!")
+                self.current_level = 3
+                self.quit_game()
+            else:
+                messagebox.showerror("Incorrecto", "La matriz ingresada no coincide con la inversa calculada.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
+
+    def obtener_matriz_ingresada(self):
+        """Obtiene la matriz ingresada por el usuario desde los campos de entrada."""
+        matriz_ingresada = []
+        for i in range(self.n):
+            row = []
+            for j in range(self.n):
+                value = self.entries[i][j].get()
+                row.append(Fraction(eval(value)))
+            matriz_ingresada.append(row)
+        return np.array(matriz_ingresada, dtype=object)
+
+    def calcular_resultado(self):
+        """Calcula y muestra el resultado de la matriz inversa."""
+        try:
+            resultado = calcular_resultado(self.matriz, self.determinante)
+            matriz_texto = format_matrix(resultado)
+            messagebox.showinfo("Resultado", f"Matriz escalada:\n{matriz_texto}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
+
+    def salir_nivel(self):
+        """Reset the matrix and return to the main menu."""
+        self.matriz = None
+        self.quit_game()
+
+    def reset_to_level_1(self):
+        """Reset the game to level 1 and disable higher levels."""
+        self.current_level = 0
+        self.level2_button.config(state="disabled")
+        self.level3_button.config(state="disabled")
+        self.salir_nivel()

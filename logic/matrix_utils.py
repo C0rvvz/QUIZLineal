@@ -2,8 +2,11 @@ from fractions import Fraction
 import numpy as np
 
 def format_matrix(A):
-    """Formatea la matriz para mostrar números como fracciones, incluyendo separadores."""
-    return "\n".join(["  ".join(f"{Fraction(x).limit_denominator()}" if x != "|" else "|" for x in fila) for fila in A])
+    if A is None:
+        return "Matriz no disponible."
+    return "\n".join(
+        ["  ".join(f"{Fraction(x).limit_denominator()}" if x != "|" else "|" for x in fila) for fila in A]
+    )
 
 def es_escalonada_reducida(matriz):
     """Verifica si la matriz está en forma escalonada reducida."""
