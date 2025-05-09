@@ -22,10 +22,10 @@ class Linealgame:
         tk.Label(self.start_frame, text="🎯 Bienvenido al Desafío Matemático 🎯", font=("Arial", 16)).pack(pady=10)
         tk.Label(self.start_frame, text="Elige un nivel:").pack(pady=5)
 
-        self.level1_button = tk.Button(self.start_frame, text="Nivel 1: Gauss Jordan", command=self.start_gauss)
+        self.level1_button = tk.Button(self.start_frame, text="Nivel 1: Transpuesta", command=self.start_transpose)
         self.level1_button.pack(pady=5)
-
-        self.level2_button = tk.Button(self.start_frame, text="Nivel 2: Transpuesta", command=self.start_transpose, state="disabled")
+        
+        self.level2_button = tk.Button(self.start_frame, text="Nivel 2: Gauss Jordan", command=self.start_gauss, state="disabled")
         self.level2_button.pack(pady=5)
 
         self.level3_button = tk.Button(self.start_frame, text="Nivel 3: Inversa", command=self.start_inverse, state="disabled")
@@ -34,12 +34,16 @@ class Linealgame:
         self.game_frame = tk.Frame(root)
 
     def start_gauss(self):
-        """Start the Gauss Jordan level."""
+        """Start the Gauss Jordan level (Level 2)."""
+        if self.current_level < 1:
+            messagebox.showerror("Error", "Debes completar el Nivel 1 (Transpuesta) antes de avanzar al Nivel 2.")
+            return
         self.n = self.ask_matrix_size()
         if self.n is None:
             return
         self.matriz = generar_matriz(self.n)  
-        self.identidad = np.eye(self.n, dtype=object) 
+        # Crear una matriz aleatoria de 2x1 en lugar de la matriz identidad
+        self.identidad = np.random.randint(-10, 10, (self.n, 1)).astype(object)
 
         self.start_frame.pack_forget()
         self.show_game_screen("Gauss Jordan")
@@ -50,32 +54,29 @@ class Linealgame:
             tk.messagebox.showerror("Error", "La matriz no está definida.")
             return
 
-      
+
         for widget in self.root.winfo_children():
             widget.destroy()
 
-      
+
         matriz_texto = format_matrix(self.matriz)
         text_widget = tk.Text(self.root, wrap="none", height=10, width=50)
         text_widget.insert("1.0", matriz_texto)
         text_widget.config(state="disabled")
         text_widget.pack()
 
-       
-        tk.Button(self.root, text="Continuar", command=self.next_level).pack()
+
+        tk.Button(self.root, text="Continuar al Nivel 2 (Gauss Jordan)", command=self.next_level).pack()
         tk.Button(self.root, text="Salir", command=self.quit_game).pack()
 
     def next_level(self):
         """Avanza al siguiente nivel."""
         tk.messagebox.showinfo("Nivel 2", "Aquí comienza el nivel 2.")
-        self.start_transpose()
+        self.start_gauss()
 
     def start_transpose(self):
-        """Start the Transpose level."""
-        if self.current_level < 1:
-            messagebox.showerror("Error", "Debes completar el Nivel 1 antes de avanzar al Nivel 2.")
-            return
-        self.n = self.ask_matrix_size() 
+        """Start the Transpose level (Level 1)."""
+        self.n = self.ask_matrix_size()
         if self.n is None:
             return
         self.matriz = generar_matriz(self.n) 
@@ -83,25 +84,35 @@ class Linealgame:
         self.show_game_screen("Transpuesta")
 
     def start_inverse(self):
-        """Start the Inverse level."""
+        """Start the Inverse level (Level 3)."""
         if self.current_level < 2:
-            messagebox.showerror("Error", "Debes completar el Nivel 2 antes de avanzar al Nivel 3.")
+            messagebox.showerror("Error", "Debes completar el Nivel 2 (Gauss Jordan) antes de avanzar al Nivel 3.")
             return
-        self.n = 2  
-        self.matriz = generar_matriz(self.n) 
-        self.determinante = calcular_determinante(self.matriz)
+            
+        self.n = self.ask_matrix_size()
+        if self.n is None:
+            return
+            
+        # Generar matriz con determinante no nulo
+        intentos = 0
+        while intentos < 10:  # Limitar intentos para evitar bucles infinitos
+            self.matriz = generar_matriz(self.n)
+            self.determinante = calcular_determinante(self.matriz)
+            if self.determinante != 0:
+                break
+            intentos += 1
+                
         if self.determinante == 0:
-            messagebox.showerror("Error", "La matriz generada no tiene inversa. Intenta nuevamente.")
+            messagebox.showerror("Error", "No se pudo generar una matriz con inversa. Intenta nuevamente.")
             self.quit_game()
             return
+            
         self.inversa_correcta = calcular_inversa(self.matriz)
         self.start_frame.pack_forget()
         self.show_game_screen("Inversa")
 
     def ask_matrix_size(self):
-        """Prompt the user to input the size of the matrix (only for level 1)."""
-        if self.current_level > 0:
-            return self.n 
+        """Prompt the user to input the size of the matrix for all levels."""
         try:
             n = int(simpledialog.askstring("Tamaño de la matriz", "Ingresa el tamaño de la matriz cuadrada (2-5):"))
             if n < 2 or n > 5:
@@ -120,7 +131,7 @@ class Linealgame:
         tk.Label(self.game_frame, text=f"Nivel: {level}", font=("Arial", 14)).pack(pady=10)
 
         if level == "Transpuesta":
-           
+
             matriz_texto = format_matrix(self.matriz)
             tk.Label(self.game_frame, text="Matriz Original:", font=("Arial", 12)).pack(pady=5)
             text_widget = tk.Text(self.game_frame, wrap="none", height=10, width=50)
@@ -128,7 +139,7 @@ class Linealgame:
             text_widget.config(state="disabled")
             text_widget.pack(pady=5)
 
-            
+
             self.entries = []  
             tk.Label(self.game_frame, text="Ingresa la matriz transpuesta:", font=("Arial", 12)).pack(pady=5)
             for i in range(self.n):
@@ -141,17 +152,17 @@ class Linealgame:
                     row_entries.append(entry)
                 self.entries.append(row_entries)
 
-            
+
             tk.Button(self.game_frame, text="Resultado", command=self.mostrar_resultado_transpuesta).pack(pady=5)
 
-           
+
             tk.Button(self.game_frame, text="Terminar", command=self.verificar_transpuesta).pack(pady=5)
 
-           
+
             tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
 
         elif level == "Inversa":
-           
+
             matriz_texto = format_matrix(self.matriz)
             tk.Label(self.game_frame, text="Matriz Original:", font=("Arial", 12)).pack(pady=5)
             text_widget = tk.Text(self.game_frame, wrap="none", height=10, width=50)
@@ -159,7 +170,7 @@ class Linealgame:
             text_widget.config(state="disabled")
             text_widget.pack(pady=5)
 
-           
+
             self.entries = []  
             tk.Label(self.game_frame, text="Ingresa la matriz inversa:", font=("Arial", 12)).pack(pady=5)
             for i in range(self.n):
@@ -172,17 +183,18 @@ class Linealgame:
                     row_entries.append(entry)
                 self.entries.append(row_entries)
 
-           
+
             tk.Button(self.game_frame, text="Resultado", command=self.mostrar_resultado_inversa).pack(pady=5)
 
-           
+
             tk.Button(self.game_frame, text="Terminar", command=self.verificar_inversa).pack(pady=5)
 
-            
+
             tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
 
         elif level == "Gauss Jordan":
             separador = np.array([["|"] for _ in range(self.n)], dtype=object)
+            # La identidad ahora tiene solo una columna
             matriz_combinada = np.hstack((self.matriz, separador, self.identidad))  
             matriz_texto = format_matrix(matriz_combinada)
             self.matriz_label = tk.Label(self.game_frame, text=f"Matriz y Resultante:\n{matriz_texto}", font=("Courier", 12))
@@ -236,7 +248,10 @@ class Linealgame:
                 raise ValueError("No se ingresó ninguna entrada.")
             f1, f2 = map(int, entrada.split())
             f1, f2 = f1 - 1, f2 - 1  
-            self.matriz, self.identidad = realizar_operacion(self.matriz, "intercambio", f1, f2, B=self.identidad)
+            # Solo intercambiar las filas en la matriz principal
+            self.matriz, _ = realizar_operacion(self.matriz, "intercambio", f1, f2)
+            # Generar nuevos valores aleatorios para la matriz derecha
+            self.identidad = np.random.randint(-10, 10, (self.n, 1)).astype(object)
             self.actualizar_matriz()
             messagebox.showinfo("Operación realizada", f"Se intercambiaron las filas {f1 + 1} y {f2 + 1}.")
         except Exception:
@@ -252,7 +267,10 @@ class Linealgame:
             factor = float(eval(factor))  
             if f1 < 0 or f1 >= self.n:
                 raise IndexError("El índice de la fila está fuera del rango de la matriz.")
-            self.matriz, self.identidad = realizar_operacion(self.matriz, "multiplicacion", f1, factor=factor, B=self.identidad)
+            # Solo aplicar la operación a la matriz principal
+            self.matriz, _ = realizar_operacion(self.matriz, "multiplicacion", f1, factor=factor)
+            # Generar nuevos valores aleatorios para la matriz derecha
+            self.identidad = np.random.randint(-10, 10, (self.n, 1)).astype(object)
             self.actualizar_matriz()
             factor_formateado = Fraction(factor).limit_denominator() if factor != int(factor) else factor
             messagebox.showinfo("Operación realizada", f"La fila {f1 + 1} fue multiplicada por {factor_formateado}.")
@@ -275,23 +293,18 @@ class Linealgame:
             partes = entrada.split()
             if len(partes) != 3:
                 raise ValueError("Debes ingresar exactamente tres valores separados por espacios.")
-            
+
             f1, f2 = int(partes[0]) - 1, int(partes[1]) - 1  
             factor = float(eval(partes[2]))  
 
             if f1 < 0 or f1 >= self.n or f2 < 0 or f2 >= self.n:
                 raise IndexError("Los índices de las filas están fuera del rango de la matriz.")
 
-           
-            self.matriz[f2] = [
-                Fraction(x) + Fraction(factor) * Fraction(y) 
-                for x, y in zip(self.matriz[f2], self.matriz[f1])
-            ]
-            if self.identidad is not None:
-                self.identidad[f2] = [
-                    Fraction(x) + Fraction(factor) * Fraction(y) 
-                    for x, y in zip(self.identidad[f2], self.identidad[f1])
-                ]
+            # Solo aplicar la operación a la matriz principal
+            self.matriz, _ = realizar_operacion(self.matriz, "suma", f2, f1, factor)
+            
+            # Generar nuevos valores aleatorios para la matriz derecha
+            self.identidad = np.random.randint(-10, 10, (self.n, 1)).astype(object)
 
             self.actualizar_matriz()
             messagebox.showinfo(
@@ -317,11 +330,8 @@ class Linealgame:
         try:
             if es_escalonada_reducida(self.matriz):
                 messagebox.showinfo("¡Correcto!", "¡Has completado el nivel correctamente!")
-                self.current_level += 1  
-                if self.current_level >= 1:
-                    self.level2_button.config(state="normal")  
-                if self.current_level >= 2:
-                    self.level3_button.config(state="normal")  
+                self.current_level = 2  
+                self.level3_button.config(state="normal")  
                 self.quit_game()
             else:
                 messagebox.showerror("Incorrecto", "La matriz no está en forma escalonada reducida.")
@@ -347,18 +357,18 @@ class Linealgame:
             )
             if not matriz_texto:
                 raise ValueError("No se ingresó ninguna matriz.")
-            
+
             filas = matriz_texto.strip().split("\n")
             if len(filas) != self.n:
                 raise ValueError(f"Debes ingresar exactamente {self.n} filas.")
-            
+
             matriz = []
             for fila in filas:
                 elementos = fila.split()
                 if len(elementos) != self.n:
                     raise ValueError(f"Cada fila debe tener exactamente {self.n} elementos.")
                 matriz.append([Fraction(eval(x)) for x in elementos]) 
-            
+
             self.matriz = np.array(matriz, dtype=object)
             self.actualizar_matriz()
             messagebox.showinfo("Matriz actualizada", "La matriz fue ingresada correctamente.")
@@ -374,7 +384,7 @@ class Linealgame:
 
         tk.Label(self.game_frame, text="Ingresa la matriz transpuesta:", font=("Arial", 14)).pack(pady=10)
 
-        
+
         matriz_texto = format_matrix(self.matriz)
         tk.Label(self.game_frame, text="Matriz Original:", font=("Arial", 12)).pack(pady=5)
         text_widget = tk.Text(self.game_frame, wrap="none", height=10, width=50)
@@ -382,7 +392,7 @@ class Linealgame:
         text_widget.config(state="disabled")
         text_widget.pack(pady=5)
 
-        
+
         self.entries = []  
         for i in range(self.n):
             row_entries = []
@@ -394,7 +404,7 @@ class Linealgame:
                 row_entries.append(entry)
             self.entries.append(row_entries)
 
-   
+
         tk.Button(self.game_frame, text="Guardar", command=self.guardar_matriz_transpuesta).pack(pady=5)
         tk.Button(self.game_frame, text="Terminar", command=self.verificar_transpuesta).pack(pady=5)
         tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
@@ -420,8 +430,8 @@ class Linealgame:
             matriz_ingresada = self.obtener_matriz_ingresada()
             if np.array_equal(matriz_ingresada, self.matriz.T):
                 messagebox.showinfo("¡Correcto!", "¡La matriz ingresada es la transpuesta correcta!")
-                self.current_level = 2
-                self.level3_button.config(state="normal")
+                self.current_level = 1
+                self.level2_button.config(state="normal")
                 self.quit_game()
             else:
                 messagebox.showerror("Incorrecto", "La matriz ingresada no es la transpuesta correcta.")
@@ -431,7 +441,7 @@ class Linealgame:
     def verificar_inversa(self):
         """Verifica si la matriz ingresada coincide con la inversa calculada."""
         try:
-            
+
             matriz_ingresada = []
             for i in range(self.n):
                 row = []
@@ -441,15 +451,15 @@ class Linealgame:
                 matriz_ingresada.append(row)
             matriz_ingresada = np.array(matriz_ingresada, dtype=object)
 
-            
+
             if not hasattr(self, 'inversa_correcta'):
                 self.inversa_correcta = calcular_inversa(self.matriz)
 
-           
+
             inversa_correcta_float = self.inversa_correcta.astype(float)
             matriz_ingresada_float = matriz_ingresada.astype(float)
 
-          
+
             if np.allclose(matriz_ingresada_float, inversa_correcta_float, atol=1e-9):
                 messagebox.showinfo("¡Correcto!", "¡La matriz ingresada es la inversa correcta!")
                 self.current_level = 3

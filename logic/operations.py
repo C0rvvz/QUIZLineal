@@ -81,14 +81,22 @@ def verificar_transpuesta(matriz, entries):
 
 def calcular_determinante(matriz):
     """
-    Calcula el determinante de una matriz cuadrada 2x2.
+    Calcula el determinante de una matriz cuadrada de cualquier tamaño.
     :param matriz: Matriz cuadrada (numpy array).
     :return: Determinante de la matriz.
     """
-    n = matriz.shape[0]
-    if n == 2:
+    # Verificar que la matriz sea cuadrada
+    filas, columnas = matriz.shape
+    if filas != columnas:
+        raise ValueError("La matriz debe ser cuadrada para calcular su determinante.")
+
+    # Para matrices 2x2, usamos la fórmula directa para mayor precisión con fracciones
+    if filas == 2:
         return matriz[0, 0] * matriz[1, 1] - matriz[0, 1] * matriz[1, 0]
-    
+
+    # Para matrices más grandes, usamos la función de numpy
+    return np.linalg.det(matriz.astype(float))
+
 def calcular_adjunta(matriz):
     """
     Calcula la matriz adjunta de una matriz cuadrada.
@@ -107,29 +115,48 @@ def calcular_adjunta(matriz):
 
 def calcular_inversa(matriz):
     """
-    Calcula la inversa de una matriz cuadrada de 2x2.
-    La inversa se calcula como la transpuesta de la matriz de cofactores dividida por el determinante.
+    Calcula la inversa de una matriz cuadrada.
+    Para matrices 2x2, usa el método de la adjunta dividida por el determinante.
+    Para matrices más grandes, usa numpy.linalg.inv.
 
     :param matriz: Matriz cuadrada (numpy array).
     :return: Matriz inversa (numpy array) o None si no tiene inversa.
     """
+    # Verificar que la matriz sea cuadrada
+    filas, columnas = matriz.shape
+    if filas != columnas:
+        raise ValueError("La matriz debe ser cuadrada para calcular su inversa.")
+
     determinante = calcular_determinante(matriz)  # Calcula el determinante.
     if determinante == 0:
         return None  # Si el determinante es 0, la matriz no tiene inversa.
 
-    # Calculamos la transpuesta manualmente.
-    transpuesta = []
-    for i in range(matriz.shape[1]):  # Iteramos por columnas.
-        row = []
-        for j in range(matriz.shape[0]):  # Iteramos por filas.
-            value = matriz[j, i]  # Intercambiamos filas y columnas.
-            row.append(Fraction(value))  # Usamos fracciones para precisión.
-        transpuesta.append(row)
-    transpuesta = np.array(transpuesta, dtype=object)
+    # Para matrices 2x2, usamos el método de la adjunta para mayor precisión con fracciones
+    if filas == 2:
+        # Para una matriz 2x2 [[a, b], [c, d]], la inversa es 1/det * [[d, -b], [-c, a]]
+        a, b = matriz[0, 0], matriz[0, 1]
+        c, d = matriz[1, 0], matriz[1, 1]
 
-    # Dividimos cada elemento de la transpuesta por el determinante.
-    inversa = transpuesta / Fraction(determinante)
-    return inversa
+        inversa = np.array([
+            [Fraction(d), Fraction(-b)],
+            [Fraction(-c), Fraction(a)]
+        ], dtype=object)
+
+        # Dividimos por el determinante
+        inversa = inversa / Fraction(determinante)
+        return inversa
+
+    # Para matrices más grandes, usamos numpy
+    try:
+        # Convertimos a float para usar numpy.linalg.inv
+        matriz_float = matriz.astype(float)
+        inversa_float = np.linalg.inv(matriz_float)
+
+        # Convertimos el resultado a fracciones para mantener la precisión
+        inversa = np.array([[Fraction(float(x)).limit_denominator() for x in fila] for fila in inversa_float], dtype=object)
+        return inversa
+    except np.linalg.LinAlgError:
+        return None  # En caso de error (matriz singular)
 
 def calcular_resultado(matriz, determinante):
     """
