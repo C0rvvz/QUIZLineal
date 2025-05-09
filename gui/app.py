@@ -70,7 +70,7 @@ class Linealgame:
         tk.Button(self.root, text="Salir", command=self.quit_game).pack()
 
     def next_level(self):
-        """Avanza al siguiente nivel."""
+        # Avanza al siguiente nivel
         tk.messagebox.showinfo("Nivel 2", "Aquí comienza el nivel 2.")
         self.start_gauss()
 
@@ -84,6 +84,7 @@ class Linealgame:
         self.show_game_screen("Transpuesta")
 
     def start_inverse(self):
+        # Inicia nivel de inversa
         if self.current_level < 2:
             messagebox.showerror("Error", "Debes completar el Nivel 2 (Gauss Jordan) antes de avanzar al Nivel 3.")
             return
@@ -92,6 +93,7 @@ class Linealgame:
         if self.n is None:
             return
 
+        # Genera matriz con determinante no nulo
         intentos = 0
         while intentos < 10:
             self.matriz = generar_matriz(self.n)
@@ -104,6 +106,8 @@ class Linealgame:
             messagebox.showerror("Error", "No se pudo generar una matriz con inversa. Intenta nuevamente.")
             self.quit_game()
             return
+
+        # Crea matriz identidad y guarda matriz original
 
         self.identidad = np.eye(self.n, dtype=object)
         self.matriz_original = self.matriz.copy()
@@ -188,7 +192,7 @@ class Linealgame:
             messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
 
     def mostrar_resultado_inversa(self):
-        """Muestra la matriz inversa correcta y la almacena para validación."""
+        # Muestra matriz inversa
         try:
             self.inversa_correcta = calcular_inversa(self.matriz)  
             if self.inversa_correcta is None:
@@ -200,7 +204,7 @@ class Linealgame:
             messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
 
     def add_gauss_controls(self, disable_controls=False):
-        """Add controls for the Gauss Jordan level."""
+        # Agrega controles nivel Gauss
         if not disable_controls:
             tk.Button(self.game_frame, text="Intercambiar filas", command=self.intercambiar_filas).pack(pady=5)
             tk.Button(self.game_frame, text="Multiplicar fila por un escalar", command=self.multiplicar_fila).pack(pady=5)
@@ -209,7 +213,7 @@ class Linealgame:
         tk.Button(self.game_frame, text="Salir", command=self.quit_game).pack(pady=5)
 
     def add_transpose_controls(self):
-        """Add controls for the Transpose level."""
+        # Agrega controles nivel Transpuesta
         tk.Button(self.game_frame, text="Digitar matriz", command=self.digitar_matriz_transpuesta).pack(pady=5)
         tk.Button(self.game_frame, text="Terminar", command=self.verificar_transpuesta).pack(pady=5)
         tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
@@ -263,7 +267,7 @@ class Linealgame:
             messagebox.showerror("Error", f"Ha ocurrido un error inesperado: {e}")
 
     def sumar_filas(self):
-        """Suma un múltiplo de una fila a otra, modificando solo la fila destino."""
+        # Suma múltiplo de fila a otra
         try:
             entrada = simpledialog.askstring(
                 "Sumar filas", 
@@ -300,14 +304,14 @@ class Linealgame:
             messagebox.showerror("Error", f"Ha ocurrido un error inesperado: {e}")
 
     def actualizar_matriz(self):
-        """Actualiza la visualización de la matriz y la matriz identidad juntas con una línea separadora."""
+        # Actualiza visualización de matriz
         separador = np.array([["|"] for _ in range(self.n)], dtype=object)
         matriz_combinada = np.hstack((self.matriz, separador, self.identidad))  
         matriz_texto = format_matrix(matriz_combinada)
         self.matriz_label.config(text=f"Matriz y Resultante\n{matriz_texto}")
 
     def terminar_nivel(self):
-        """Valida si la matriz actual es correcta y regresa al menú principal."""
+        # Valida matriz y finaliza nivel
         try:
             if es_escalonada_reducida(self.matriz):
                 messagebox.showinfo("¡Correcto!", "¡Has completado el nivel correctamente!")
@@ -320,7 +324,7 @@ class Linealgame:
             messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
 
     def quit_game(self):
-        """Regresa al menú principal sin perder el progreso."""
+        # Vuelve al menú principal
         self.matriz = None  
         for widget in self.game_frame.winfo_children():
             widget.destroy()
@@ -329,7 +333,7 @@ class Linealgame:
         self.start_frame.pack()
 
     def digitar_matriz(self):
-        """Allow the user to manually input the matrix."""
+        # Permite ingresar matriz manualmente
         try:
             matriz_texto = simpledialog.askstring(
                 "Digitar matriz",
@@ -391,7 +395,6 @@ class Linealgame:
         tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
 
     def guardar_matriz_transpuesta(self):
-        """Save the manually entered transposed matrix."""
         try:
             matriz_transpuesta = []
             for i in range(self.n):
@@ -420,7 +423,7 @@ class Linealgame:
             messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
 
     def intercambiar_filas_inversa(self):
-        """Intercambia dos filas en ambas matrices para el nivel de inversa."""
+        # Intercambia filas en nivel inversa
         try:
             entrada = simpledialog.askstring("Intercambiar filas", "Ingresa las filas a intercambiar (ej: 1 2):")
             if not entrada:
@@ -434,7 +437,7 @@ class Linealgame:
             messagebox.showerror("Error", f"Entrada inválida: {e}")
 
     def multiplicar_fila_inversa(self):
-        """Multiplica una fila por un escalar en ambas matrices para el nivel de inversa."""
+        # Multiplica fila por escalar en nivel inversa
         try:
             entrada = simpledialog.askstring("Multiplicar fila", "Ingresa la fila y el factor de multiplicación (ej: 1 1/2):")
             if not entrada:
@@ -456,7 +459,7 @@ class Linealgame:
             messagebox.showerror("Error", f"Ha ocurrido un error inesperado: {e}")
 
     def sumar_filas_inversa(self):
-        """Suma un múltiplo de una fila a otra en ambas matrices para el nivel de inversa."""
+        # Suma múltiplo de fila a otra en nivel inversa
         try:
             entrada = simpledialog.askstring(
                 "Sumar filas", 
@@ -488,14 +491,14 @@ class Linealgame:
             messagebox.showerror("Error", f"Ha ocurrido un error inesperado: {e}")
 
     def actualizar_matriz_inversa(self):
-        """Actualiza la visualización de la matriz y la matriz identidad juntas con una línea separadora."""
+        # Actualiza visualización de matriz inversa
         separador = np.array([["|"] for _ in range(self.n)], dtype=object)
         matriz_combinada = np.hstack((self.matriz, separador, self.identidad))  
         matriz_texto = format_matrix(matriz_combinada)
         self.matriz_label.config(text=f"Matriz y Identidad\n{matriz_texto}")
 
     def terminar_nivel_inversa(self):
-        """Verifica si se ha obtenido la matriz inversa correctamente."""
+        # Verifica matriz inversa y finaliza nivel
         try:
             # Primero, verificamos si la matriz izquierda es la identidad
             identidad_esperada = np.eye(self.n, dtype=float)
@@ -560,21 +563,21 @@ class Linealgame:
         return np.array(matriz_ingresada, dtype=object)
 
     def calcular_resultado(self):
-        """Calcula y muestra el resultado de la matriz inversa."""
+        # Calcula y muestra el resultado de la matriz inversa
         try:
             resultado = calcular_resultado(self.matriz, self.determinante)
             matriz_texto = format_matrix(resultado)
             messagebox.showinfo("Resultado", f"Matriz escalada:\n{matriz_texto}")
         except Exception as e:
             messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
-
+    
     def salir_nivel(self):
-        """Reset the matrix and return to the main menu."""
+        # Sale del nivel actual
         self.matriz = None
         self.quit_game()
 
     def reset_to_level_1(self):
-        """Reset the game to level 1 and disable higher levels."""
+        # Reinicia al nivel 1
         self.current_level = 0
         self.level2_button.config(state="disabled")
         self.level3_button.config(state="disabled")
