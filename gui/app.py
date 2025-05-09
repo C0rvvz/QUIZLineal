@@ -24,7 +24,7 @@ class Linealgame:
 
         self.level1_button = tk.Button(self.start_frame, text="Nivel 1: Transpuesta", command=self.start_transpose)
         self.level1_button.pack(pady=5)
-        
+
         self.level2_button = tk.Button(self.start_frame, text="Nivel 2: Gauss Jordan", command=self.start_gauss, state="disabled")
         self.level2_button.pack(pady=5)
 
@@ -34,7 +34,7 @@ class Linealgame:
         self.game_frame = tk.Frame(root)
 
     def start_gauss(self):
-        """Start the Gauss Jordan level (Level 2)."""
+        # Inicia nivel Gauss Jordan
         if self.current_level < 1:
             messagebox.showerror("Error", "Debes completar el Nivel 1 (Transpuesta) antes de avanzar al Nivel 2.")
             return
@@ -49,7 +49,7 @@ class Linealgame:
         self.show_game_screen("Gauss Jordan")
 
     def show_completed_level_1(self):
-        """Muestra la matriz completada del nivel 1."""
+        # Muestra matriz completada nivel 1
         if self.matriz is None:
             tk.messagebox.showerror("Error", "La matriz no está definida.")
             return
@@ -84,35 +84,35 @@ class Linealgame:
         self.show_game_screen("Transpuesta")
 
     def start_inverse(self):
-        """Start the Inverse level (Level 3)."""
         if self.current_level < 2:
             messagebox.showerror("Error", "Debes completar el Nivel 2 (Gauss Jordan) antes de avanzar al Nivel 3.")
             return
-            
+
         self.n = self.ask_matrix_size()
         if self.n is None:
             return
-            
-        # Generar matriz con determinante no nulo
+
         intentos = 0
-        while intentos < 10:  # Limitar intentos para evitar bucles infinitos
+        while intentos < 10:
             self.matriz = generar_matriz(self.n)
             self.determinante = calcular_determinante(self.matriz)
             if self.determinante != 0:
                 break
             intentos += 1
-                
+
         if self.determinante == 0:
             messagebox.showerror("Error", "No se pudo generar una matriz con inversa. Intenta nuevamente.")
             self.quit_game()
             return
-            
-        self.inversa_correcta = calcular_inversa(self.matriz)
+
+        self.identidad = np.eye(self.n, dtype=object)
+        self.matriz_original = self.matriz.copy()
+
         self.start_frame.pack_forget()
         self.show_game_screen("Inversa")
 
     def ask_matrix_size(self):
-        """Prompt the user to input the size of the matrix for all levels."""
+        # Solicita tamaño de matriz
         try:
             n = int(simpledialog.askstring("Tamaño de la matriz", "Ingresa el tamaño de la matriz cuadrada (2-5):"))
             if n < 2 or n > 5:
@@ -123,7 +123,7 @@ class Linealgame:
             return None
 
     def show_game_screen(self, level, disable_controls=False):
-        """Display the game screen for the current level."""
+        # Muestra pantalla de juego
         for widget in self.game_frame.winfo_children():
             widget.destroy()
 
@@ -162,42 +162,19 @@ class Linealgame:
             tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
 
         elif level == "Inversa":
-
-            matriz_texto = format_matrix(self.matriz)
-            tk.Label(self.game_frame, text="Matriz Original:", font=("Arial", 12)).pack(pady=5)
-            text_widget = tk.Text(self.game_frame, wrap="none", height=10, width=50)
-            text_widget.insert("1.0", matriz_texto)
-            text_widget.config(state="disabled")
-            text_widget.pack(pady=5)
-
-
-            self.entries = []  
-            tk.Label(self.game_frame, text="Ingresa la matriz inversa:", font=("Arial", 12)).pack(pady=5)
-            for i in range(self.n):
-                row_entries = []
-                row_frame = tk.Frame(self.game_frame)
-                row_frame.pack()
-                for j in range(self.n):
-                    entry = tk.Entry(row_frame, width=5, justify="center")
-                    entry.grid(row=i, column=j, padx=5, pady=5)
-                    row_entries.append(entry)
-                self.entries.append(row_entries)
-
-
-            tk.Button(self.game_frame, text="Resultado", command=self.mostrar_resultado_inversa).pack(pady=5)
-
-
-            tk.Button(self.game_frame, text="Terminar", command=self.verificar_inversa).pack(pady=5)
-
-
-            tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
+            separador = np.array([["|"] for _ in range(self.n)], dtype=object)
+            matriz_combinada = np.hstack((self.matriz, separador, self.identidad))  
+            matriz_texto = format_matrix(matriz_combinada)
+            self.matriz_label = tk.Label(self.game_frame, text=f"Matriz:\n{matriz_texto}", font=("Courier", 12))
+            self.matriz_label.pack(pady=5)
+            self.add_inverse_controls(disable_controls)
 
         elif level == "Gauss Jordan":
             separador = np.array([["|"] for _ in range(self.n)], dtype=object)
             # La identidad ahora tiene solo una columna
             matriz_combinada = np.hstack((self.matriz, separador, self.identidad))  
             matriz_texto = format_matrix(matriz_combinada)
-            self.matriz_label = tk.Label(self.game_frame, text=f"Matriz y Resultante:\n{matriz_texto}", font=("Courier", 12))
+            self.matriz_label = tk.Label(self.game_frame, text=f"Matriz:\n{matriz_texto}", font=("Courier", 12))
             self.matriz_label.pack(pady=5)
             self.add_gauss_controls(disable_controls)
 
@@ -237,8 +214,12 @@ class Linealgame:
         tk.Button(self.game_frame, text="Terminar", command=self.verificar_transpuesta).pack(pady=5)
         tk.Button(self.game_frame, text="Salir", command=self.salir_nivel).pack(pady=5)
 
-    def add_inverse_controls(self):
-        tk.Button(self.game_frame, text="Terminar", command=self.verificar_inversa).pack(pady=5)
+    def add_inverse_controls(self, disable_controls=False):
+        if not disable_controls:
+            tk.Button(self.game_frame, text="Intercambiar filas", command=self.intercambiar_filas_inversa).pack(pady=5)
+            tk.Button(self.game_frame, text="Multiplicar fila por un escalar", command=self.multiplicar_fila_inversa).pack(pady=5)
+            tk.Button(self.game_frame, text="Sumar múltiplo de una fila a otra", command=self.sumar_filas_inversa).pack(pady=5)
+            tk.Button(self.game_frame, text="Terminar", command=self.terminar_nivel_inversa).pack(pady=5)
         tk.Button(self.game_frame, text="Salir", command=self.quit_game).pack(pady=5)
 
     def intercambiar_filas(self):
@@ -302,7 +283,7 @@ class Linealgame:
 
             # Solo aplicar la operación a la matriz principal
             self.matriz, _ = realizar_operacion(self.matriz, "suma", f2, f1, factor)
-            
+
             # Generar nuevos valores aleatorios para la matriz derecha
             self.identidad = np.random.randint(-10, 10, (self.n, 1)).astype(object)
 
@@ -438,10 +419,111 @@ class Linealgame:
         except Exception as e:
             messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
 
+    def intercambiar_filas_inversa(self):
+        """Intercambia dos filas en ambas matrices para el nivel de inversa."""
+        try:
+            entrada = simpledialog.askstring("Intercambiar filas", "Ingresa las filas a intercambiar (ej: 1 2):")
+            if not entrada:
+                raise ValueError("No se ingresó ninguna entrada.")
+            f1, f2 = map(int, entrada.split())
+            f1, f2 = f1 - 1, f2 - 1  
+            self.matriz, self.identidad = realizar_operacion(self.matriz, "intercambio", f1, f2, B=self.identidad)
+            self.actualizar_matriz_inversa()
+            messagebox.showinfo("Operación realizada", f"Se intercambiaron las filas {f1 + 1} y {f2 + 1}.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Entrada inválida: {e}")
+
+    def multiplicar_fila_inversa(self):
+        """Multiplica una fila por un escalar en ambas matrices para el nivel de inversa."""
+        try:
+            entrada = simpledialog.askstring("Multiplicar fila", "Ingresa la fila y el factor de multiplicación (ej: 1 1/2):")
+            if not entrada:
+                raise ValueError("No se ingresó ninguna entrada.")
+            f1, factor = entrada.split()
+            f1 = int(f1) - 1  
+            factor = float(eval(factor))  
+            if f1 < 0 or f1 >= self.n:
+                raise IndexError("El índice de la fila está fuera del rango de la matriz.")
+            self.matriz, self.identidad = realizar_operacion(self.matriz, "multiplicacion", f1, factor=factor, B=self.identidad)
+            self.actualizar_matriz_inversa()
+            factor_formateado = Fraction(factor).limit_denominator() if factor != int(factor) else factor
+            messagebox.showinfo("Operación realizada", f"La fila {f1 + 1} fue multiplicada por {factor_formateado}.")
+        except ValueError as ve:
+            messagebox.showerror("Error", f"Entrada inválida: {ve}")
+        except IndexError as ie:
+            messagebox.showerror("Error", f"Índice fuera de rango: {ie}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error inesperado: {e}")
+
+    def sumar_filas_inversa(self):
+        """Suma un múltiplo de una fila a otra en ambas matrices para el nivel de inversa."""
+        try:
+            entrada = simpledialog.askstring(
+                "Sumar filas", 
+                "Ingresa la fila fuente, la fila destino y el factor (ej: 1 2 -3):"
+            )
+            if not entrada:
+                raise ValueError("No se ingresó ninguna entrada.")
+            partes = entrada.split()
+            if len(partes) != 3:
+                raise ValueError("Debes ingresar exactamente tres valores separados por espacios.")
+
+            f1, f2 = int(partes[0]) - 1, int(partes[1]) - 1  
+            factor = float(eval(partes[2]))  
+
+            if f1 < 0 or f1 >= self.n or f2 < 0 or f2 >= self.n:
+                raise IndexError("Los índices de las filas están fuera del rango de la matriz.")
+
+            self.matriz, self.identidad = realizar_operacion(self.matriz, "suma", f2, f1, factor, B=self.identidad)
+            self.actualizar_matriz_inversa()
+            messagebox.showinfo(
+                "Operación realizada", 
+                f"Se sumó {factor} veces la fila {f1 + 1} a la fila {f2 + 1}."
+            )
+        except ValueError as ve:
+            messagebox.showerror("Error", f"Entrada inválida: {ve}")
+        except IndexError as ie:
+            messagebox.showerror("Error", f"Índice fuera de rango: {ie}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error inesperado: {e}")
+
+    def actualizar_matriz_inversa(self):
+        """Actualiza la visualización de la matriz y la matriz identidad juntas con una línea separadora."""
+        separador = np.array([["|"] for _ in range(self.n)], dtype=object)
+        matriz_combinada = np.hstack((self.matriz, separador, self.identidad))  
+        matriz_texto = format_matrix(matriz_combinada)
+        self.matriz_label.config(text=f"Matriz y Identidad\n{matriz_texto}")
+
+    def terminar_nivel_inversa(self):
+        """Verifica si se ha obtenido la matriz inversa correctamente."""
+        try:
+            # Primero, verificamos si la matriz izquierda es la identidad
+            identidad_esperada = np.eye(self.n, dtype=float)
+            matriz_float = self.matriz.astype(float)
+
+            if not np.allclose(matriz_float, identidad_esperada, atol=1e-9):
+                messagebox.showerror("Incorrecto", "La matriz izquierda debe ser la matriz identidad.")
+                return
+
+            # Ahora verificamos si la matriz derecha es la inversa de la matriz original
+            matriz_original_float = self.matriz_original.astype(float)
+            identidad_float = self.identidad.astype(float)
+
+            # Verificar si A * B = I (la matriz original multiplicada por la calculada es identidad)
+            producto = np.dot(matriz_original_float, identidad_float)
+
+            if np.allclose(producto, identidad_esperada, atol=1e-9):
+                messagebox.showinfo("¡Correcto!", "¡Has calculado correctamente la matriz inversa!")
+                self.current_level = 3
+                self.quit_game()
+            else:
+                messagebox.showerror("Incorrecto", "La matriz derecha no es la inversa de la matriz original.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error: {e}")
+
     def verificar_inversa(self):
         """Verifica si la matriz ingresada coincide con la inversa calculada."""
         try:
-
             matriz_ingresada = []
             for i in range(self.n):
                 row = []
@@ -451,14 +533,11 @@ class Linealgame:
                 matriz_ingresada.append(row)
             matriz_ingresada = np.array(matriz_ingresada, dtype=object)
 
-
             if not hasattr(self, 'inversa_correcta'):
                 self.inversa_correcta = calcular_inversa(self.matriz)
 
-
             inversa_correcta_float = self.inversa_correcta.astype(float)
             matriz_ingresada_float = matriz_ingresada.astype(float)
-
 
             if np.allclose(matriz_ingresada_float, inversa_correcta_float, atol=1e-9):
                 messagebox.showinfo("¡Correcto!", "¡La matriz ingresada es la inversa correcta!")
