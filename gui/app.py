@@ -179,7 +179,7 @@ class Linealgame:
             self.add_gauss_controls(disable_controls)
 
     def mostrar_resultado_transpuesta(self):
-        """Muestra la matriz transpuesta correcta."""
+        # Muestra matriz transpuesta
         try:
             transpuesta = self.matriz.T
             matriz_texto = format_matrix(transpuesta)
