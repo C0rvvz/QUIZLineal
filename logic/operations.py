@@ -1,12 +1,6 @@
 import numpy as np
 from fractions import Fraction
 
-
-# ==================== NIVEL 1: TRANSPUESTA ====================
-# En álgebra lineal, la transpuesta de una matriz A es una nueva matriz A^T
-# donde las filas de A se convierten en columnas de A^T y viceversa.
-# Matemáticamente: (A^T)_ij = A_ji para todo i,j
-
 def crear_matriz_aleatoria(n):
     """
     Genera una matriz aleatoria cuadrada de tamaño n×n.
@@ -20,6 +14,10 @@ def crear_matriz_aleatoria(n):
     """
     return np.random.randint(-10, 10, (n, n))
 
+# ==================== NIVEL 1: TRANSPUESTA ====================
+# En álgebra lineal, la transpuesta de una matriz A es una nueva matriz A^T
+# donde las filas de A se convierten en columnas de A^T y viceversa.
+# Matemáticamente: (A^T)_ij = A_ji para todo i,j
 
 def comparar_con_transpuesta(matriz, matriz_transpuesta):
     """
