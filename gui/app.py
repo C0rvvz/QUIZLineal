@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import tkinter as tk
 from tkinter import messagebox, simpledialog
-from logic.operations import crear_matriz_aleatoria, aplicar_operacion_elemental, obtener_matriz_inversa, calcular_matriz_escalada, obtener_determinante, evaluar_entrada_transpuesta, verificar_producto_es_identidad
+from logic.operations import crear_matriz_aleatoria, aplicar_operacion_elemental, evaluar_entrada_transpuesta, verificar_producto_es_identidad
 from logic.matrix_utils import formatear_matriz_para_mostrar, verificar_forma_escalonada_reducida
 import numpy as np
 from fractions import Fraction
@@ -93,23 +93,15 @@ class Linealgame:
         if self.n is None:
             return
 
-        # Genera matriz con determinante no nulo
-        intentos = 0
-        while intentos < 10:
-            self.matriz = crear_matriz_aleatoria(self.n)
-            self.determinante = obtener_determinante(self.matriz)
-            if self.determinante != 0:
-                break
-            intentos += 1
-
-        if self.determinante == 0:
-            messagebox.showerror("Error", "No se pudo generar una matriz con inversa. Intenta nuevamente.")
-            self.quit_game()
-            return
-
         # Crea matriz identidad y guarda matriz original
 
         self.identidad = np.eye(self.n, dtype=object)
+        self.matriz = crear_matriz_aleatoria(self.n)
+        # Asegúrate de que self.matriz no sea None antes de copiar
+        if self.matriz is None:
+            self.msg_label = tk.Label(self.frame, text="Error: No se pudo crear la matriz.", fg="red")
+            self.msg_label.grid(row=0, column=0)
+            return
         self.matriz_original = self.matriz.copy()
 
         self.start_frame.pack_forget()
