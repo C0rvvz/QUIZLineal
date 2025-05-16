@@ -1,16 +1,16 @@
 from fractions import Fraction
 import numpy as np
 
-def format_matrix(A):
-    # Formatea matriz para mostrar
+def formatear_matriz_para_mostrar(A):
+    # Formatea matriz para mostrar en la interfaz gráfica
     if A is None:
         return "Matriz no disponible."
     return "\n".join(
         ["  ".join(f"{Fraction(x).limit_denominator()}" if x != "|" else "|" for x in fila) for fila in A]
     )
 
-def es_escalonada_reducida(matriz):
-    # Verifica si la matriz está en forma escalonada reducida
+def verificar_forma_escalonada_reducida(matriz):
+    # Verifica si la matriz está en forma escalonada reducida por filas
     filas, columnas = matriz.shape
 
     ultimo_pivote_col = -1
